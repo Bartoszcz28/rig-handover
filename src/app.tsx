@@ -7,6 +7,8 @@ import { Layout } from './views/layout.js';
 import { DigestPage } from './views/digest.js';
 import { StatusBoard } from './views/status.js';
 
+const NIGHT = /^\d{4}-\d{2}-\d{2}$/;
+
 export function createApp(config: RigConfig = loadConfig()) {
   const app = new Hono();
 
@@ -22,7 +24,7 @@ export function createApp(config: RigConfig = loadConfig()) {
 
   app.get('/digest/:night', (c) => {
     const night = c.req.param('night');
-    const n = /^\d{4}-\d{2}-\d{2}$/.test(night) ? readNight(config.runsDir, night) : null;
+    const n = NIGHT.test(night) ? readNight(config.runsDir, night) : null;
     if (n === null) {
       return c.html(
         <Layout title={`digest · ${night}`} lane={lane()}>
@@ -36,6 +38,15 @@ export function createApp(config: RigConfig = loadConfig()) {
         <DigestPage night={n} />
       </Layout>,
     );
+  });
+
+  app.get('/api/digest/:night', (c) => {
+    const night = c.req.param('night');
+    const notFound = () => c.json({ error: 'no run log', night }, 404);
+    if (!NIGHT.test(night)) return notFound();
+    const n = readNight(config.runsDir, night);
+    if (n === null) return notFound();
+    return c.json({ night: n.night, badLines: n.badLines, rows: n.rows });
   });
 
   return app;
