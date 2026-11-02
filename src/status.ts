@@ -32,7 +32,12 @@ export function nightCounts(runsDir: string, night: string): NightCounts | null 
     const n = readNight(runsDir, night);
     if (!n) return null;
     const counts: NightCounts = { ok: 0, retry: 0, fail: 0 };
-    for (const row of n.rows) counts[row.lastStatus]++;
+    // Run lines by status, so a night's retries show even when the job ended ok.
+    for (const row of n.rows) {
+      counts.retry += row.retries;
+      counts.fail += row.fails;
+      counts.ok += row.runs - row.retries - row.fails;
+    }
     return counts;
   } catch {
     return null;
